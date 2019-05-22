@@ -14,7 +14,7 @@ from keras.applications import ResNet50
 from keras.models import Model
 from keras.layers import Input, Conv2D, BatchNormalization, Activation, MaxPooling2D, Dense
 from keras.layers import ZeroPadding2D, add
-from keras.layers import GlobalAveragePooling2D,
+from keras.layers import GlobalAveragePooling2D
 
 class ResNet50:
     def __init__(self):
