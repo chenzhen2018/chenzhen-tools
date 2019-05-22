@@ -20,8 +20,7 @@ class AlexNet:
 
     def build_network(self):
         model = Sequential()
-        model.add(Conv2D(96,
-                         (11, 11),
+        model.add(Conv2D(96, (11, 11),
                          strides=(4, 4),
                          input_shape=(227, 227, 3),
                          padding='valid',
@@ -29,22 +28,19 @@ class AlexNet:
                          kernel_initializer='uniform'))
         model.add(BatchNormalization())
         model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid'))
-        model.add(Conv2D(256,
-                         (5, 5),
+        model.add(Conv2D(256, (5, 5),
                          strides=(1, 1),
                          padding='same',
                          activation='relu',
                          kernel_initializer='uniform'))
         model.add(BatchNormalization())
         model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid'))
-        model.add(Conv2D(384,
-                         (3, 3),
+        model.add(Conv2D(384, (3, 3),
                          strides=(1, 1),
                          padding='same',
                          activation='relu',
                          kernel_initializer='uniform'))
-        model.add(Conv2D(384,
-                         (3, 3),
+        model.add(Conv2D(384, (3, 3),
                          strides=(1, 1),
                          padding='same',
                          activation='relu',

@@ -18,14 +18,12 @@ class LeNet:
 
     def build_net(self):
         net = Sequential()
-        net.add(Conv2D(6,
-                       (5, 5),
+        net.add(Conv2D(6, (5, 5),
                        strides=(1, 1),
                        input_shape=(28, 28, 1),
                        padding='valid'))
         net.add(MaxPooling2D(pool_size=(2, 2)))
-        net.add(Conv2D(16,
-                       (5, 5),
+        net.add(Conv2D(16, (5, 5),
                        strides=(1, 1),
                        padding='valid',
                        activation='relu',

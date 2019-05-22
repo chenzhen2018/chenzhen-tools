@@ -175,3 +175,10 @@ BN的优点：稳定的训练，加快收敛，类似于Dropout，简单初始�
 
 ## Inception V4
 
+**Inception V4**
+
+![](https://res.cloudinary.com/chenzhen/image/upload/v1558492883/github_image/2019-05-22/inception_v4.jpg)
+
+**Inception_ResNet_v2**
+
+![](https://res.cloudinary.com/chenzhen/image/upload/v1558492883/github_image/2019-05-22/inception_resnet_v2.jpg)
