@@ -251,7 +251,7 @@ YOLO v1-v3
 **思想：**
 
 1. 将输入图像划分成$S\times S​$个grid cell，待检测目标（Object）的中心落在哪个grid cell中，就表明这个grid cell**负责**预测这个Object；
-2. 每一个grid cell负责预测B个bounding box和C个类别的条件概率；**首先**，在每一个grid cell中，每一个bounding box包含5个值，分别是$x, y, w, h, confidence\ score​$；$x, y​$相对于grid cell归一化到$[0,1]​$，$w,h​$相对于整张图归一化到​$[0,1]​$，表示bounding box的位置信息；$confidence \ score = Pr(Object) * IOU_{pred}^{truth}​$，表示该bounding box的置信度；其中，该bbx中存在Object，则$Pr(Object)=1​$，否则为0；$IOU_{pred}^{truth}​$表示bbx与ground truth的IOU；**其次**，C个类别的条件概率$Pr(Class_i|Object)​$表示每一个grid cell中存在Object的条件下，各个类别的概率；
+2. 每一个grid cell负责预测B个bounding box和C个类别的条件概率；**首先**，在每一个grid cell中，每一个bounding box包含5个值，分别是$x, y, w, h, confidence\ score$；$x, y$相对于grid cell的offset归一化到$[0,1]$，$w,h$相对于整张图归一化到​$[0,1]$，表示bounding box的位置信息；$confidence \ score = Pr(Object) * IOU_{pred}^{truth}$，表示该bounding box的置信度；其中，该bbx中存在Object，则$Pr(Object)=1$，否则为0；$IOU_{pred}^{truth}$表示bbx与ground truth的IOU；**其次**，C个类别的条件概率$Pr(Class_i|Object)$表示每一个grid cell中存在Object的条件下，各个类别的概率；
 3. 文章中，取$S = 7, B = 2, C = 20$，因此，网络输出是：$S\times S \times (5\times B + C)=7\times 7\times 30$；
 4. 在**测试**的时候，计算如下：表示每一个bbx的class-specific confidence score，可以设置阈值，过滤掉得分较低的bbx；
 
@@ -316,8 +316,47 @@ $$
 3. **convolutional with Anchor Boxes:** 表示借鉴Faster RCNN的做法，去掉回归层之前的全连接层和池化层，在最后一层卷积上进行anchor boxes的预测。这种做法，降低了mAP，提高了Recall；在YOLO v1中，类别概率是由grid cell负责的，而在YOLO v2中，类别概率由anchor box负责，即最后输出的tensor的带下是$S\times S \times B \times (5 + C)​$；同时，调整网络输入为$416\times 416​$；
 4. **new network:**  在YOLO v2中使用了新的网络模型，提出了Darknet 19；包含19个卷积，5个最大池化；如下图所示；
 5. **dimension priors:** 利用k-meas的方式来设计anchor box；
-6. **location prediction:** 不适用Faster RCNN中的offset，而是沿用YOLO v1直接预测相对grid cell的归一化坐标；使用logistic activation进行限制；
-7. **passthrough:** 最后输出的特征图的大小是$13\times 13$，YOLO v2加上了一个Passthrough Layer来取得之前某个$26\times 26$的feature map；Passthrough Layer 能够将高分辨特征和低分辨特征连接起来；
+6. **location prediction:** 不使用Faster RCNN中的offset，而是沿用YOLO v1直接预测相对grid cell的归一化坐标；使用logistic activation进行限制；如图所示，公式如下：
+
+![](https://res.cloudinary.com/chenzhen/image/upload/v1558569993/github_image/2019-05-23/YOLOv2_bbx.png)
+$$
+\begin{equation}
+b_x = \sigma(t_x) + c_x\\
+b_y = \sigma(t_y) + c_y \\
+b_w = p_we^{t_w}\\
+b_h = p_he^{t_h}\\
+Pr(Object) * IOU(b, object) = \sigma(t_o)
+\end{equation}
+$$
+从上述图中和公式中，其中$t_x, t_y,t_w, t_h,t_o$表示网络输出的五个量，表示bbx的坐标信息以及置信度，不过仍需要做进一步的处理，才能真正得到bbx的坐标位置和置信度；$\sigma$表示logistic activation用于限制网络的预测到$[0, 1]​$；
+
+为了得到bbx的中心坐标$(b_x, b_y)$，计算方式如下：
+$$
+\begin{equation}
+b_x = \sigma(t_x) + c_x\\
+b_y = \sigma(t_y) + c_y \\
+\end{equation}
+$$
+其中，$c_x, c_y$表示当前grid cell的左上角坐标相对于图像左上角的偏移量，而我们$\sigma$则是对网络输出的$(t_x, t_y)$进行限制；
+
+为了得到bbx的宽和高$(b_w, b_h)$，计算方式如下：
+$$
+\begin{equation}
+b_w = p_we^{t_w}\\
+b_h = p_he^{t_h}\\
+\end{equation}
+$$
+其中，$(t_w, t_h)$表示网络输出的量，$p_w, p_h$表示kmeans聚类之后的prior模板框的宽和高；
+
+为了得到置信度$Pr(Object)*IOU(b, object)$，计算如下：
+$$
+\begin{equation}
+Pr(Object) * IOU(b, object) = \sigma(t_o)
+\end{equation}
+$$
+其中，$t_o$不表示网络输出，$\sigma$进行限制；
+
+7. **passthrough:** 最后输出的特征图的大小是$13\times 13$，YOLO v2加上了一个Passthrough Layer来取得之前某个$26\times 26​$的feature map；Passthrough Layer 能够将高分辨特征和低分辨特征连接起来；
 8. **multi-scale:** 在迭代的过程中，网络会随机选择一个新的输入尺寸进行训练；
 9. **hi-res detector:** ？
 
@@ -390,8 +429,33 @@ YOLO v3的整体结构类似于YOLO v2，但具体细节则存在很大的不同
 
 **Some tricks：**
 
+1. **Bounding Box Prediction**
+
+&emsp; 在YOLO v3中，有关bbx的预测类似于YOLO v2；关于bbx的坐标信息，计算方式如v2一致，即网络输出$t_x, t_y, t_w, t_h$，然后根据公式计算对应的$b_x, b_y, b_w, b_h$；而在计算bbx的置信度（在v3中称为Objectness score）时，进行了一些改变；在v2中，是根据下面公式计算objectness score：
+$$
+\begin{equation}
+Pr(Object) * IOU(b, object) = \sigma(t_o)
+\end{equation}
+$$
+其中，$t_o$表示网络输出；
+
+那么在v3中，有这样几条规则来计算objectness score：
+
+* 如果一个bbx与ground truth的IOU最大，则objectness score为1；
+* 如果一个bbx与ground truth的IOU不是最大，但是IOU值仍大于一个给定阈值（0.5），仍认为objectness score为1；
+
+（上面这两条有些类似Faster RCNN中过滤anchor box的方式）
+
+&emsp; 还有一点说明的是，文章中指出使用kemeans选择9个anchor prior，这里就对应于上述特征金字塔中的三层特征，每层特征预测三个bbx；
+
 **Loss Function：**
 
+&emsp; 有关v3中的损失，和v1，v2的损失函数大体都是一致的；
+
+&emsp; 另外需要说明的一点是，如果bbx没有Object，在损失中，将不会对坐标或者类别概率计算损失，只计算obejctness score的损失；（其实这一点应该在v1中就有体现了，没有object，还计算bbx的坐标信息和类别概率的损失干嘛啊，置信度confidence，即objectness score就有问题。只不过这里的objectness score的计算方式和之前稍有不同；）
+
 ---
 
 ---
+
+&emsp; 初步结束，待补充；
